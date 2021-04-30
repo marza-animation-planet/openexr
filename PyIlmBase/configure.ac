@@ -1,9 +1,15 @@
+dnl
+dnl SPDX-License-Identifier: BSD-3-Clause
+dnl Copyright Contributors to the OpenEXR Project.
+dnl
+
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(PyIlmBase, 2.3.0)
-AC_SUBST(PYILMBASE_VERSION, 2.3.0)
+AC_INIT(PyIlmBase, 2.4.0)
+AC_SUBST(PYILMBASE_VERSION, 2.4.0)
 AC_CANONICAL_HOST
 AC_CONFIG_SRCDIR(PyIex/iexmodule.cpp)
-AC_CONFIG_HEADER(config/PyIlmBaseConfig.h)
+AC_CONFIG_HEADERS([config/PyIlmBaseConfig.h])
+AC_CONFIG_HEADERS([config/PyIlmBaseConfigInternal.h])
 AM_INIT_AUTOMAKE(1.6.3)  dnl Require automake 1.6.3 or better
 AM_MAINTAINER_MODE
 dnl static python modules make no sense - disable static
@@ -39,30 +45,30 @@ AC_ARG_ENABLE(cxxstd,
                              [enable ISO c++ standard 11/14 [[default=auto]]]),
               [cxxstd="${enableval}"], [cxxstd=14])
 
-if test "${cxxstd}" == 17 ; then
+if test "${cxxstd}" = 17 ; then
     AX_CXX_COMPILE_STDCXX([17], [noext], [mandatory])
 	CXXFLAGS="$CXXFLAGS -std=c++17"
 else
-  if test "${cxxstd}" == 14 ; then
+  if test "${cxxstd}" = 14 ; then
       AX_CXX_COMPILE_STDCXX([14], [noext], [mandatory])
   	CXXFLAGS="$CXXFLAGS -std=c++14"
   else
-    if test "${cxxstd}" == 11 ; then
+    if test "${cxxstd}" = 11 ; then
       AX_CXX_COMPILE_STDCXX([11], [noext], [mandatory])
       CXXFLAGS="$CXXFLAGS -std=c++11"
     else
-      if test "${cxxstd}" == 03 ; then
+      if test "${cxxstd}" = 03 ; then
         CXXFLAGS="$CXXFLAGS -std=c++03"
       else
         dnl automatically determine...
         AX_CXX_COMPILE_STDCXX([11], [noext], [optional])
         AX_CXX_COMPILE_STDCXX([14], [noext], [optional])
         AX_CXX_COMPILE_STDCXX([17], [noext], [optional])
-        if test "$HAVE_CXX14" == 1 ; then
+        if test "$HAVE_CXX14" = 1 ; then
   	      CXXFLAGS="$CXXFLAGS -std=c++14"
           cxxstd = 14
         else
-          if test "$HAVE_CXX11" == 1 ; then
+          if test "$HAVE_CXX11" = 1 ; then
   	        CXXFLAGS="$CXXFLAGS -std=c++11"
             cxxstd = 11
           fi
@@ -79,6 +85,7 @@ AM_PATH_PKGCONFIG(
    [ILMBASE_CXXFLAGS],
    [ILMBASE_LDFLAGS],
    [ILMBASE_LIBS],
+   [ILMBASE_RPATH],
    [IlmBase],
    [OpenEXR],
    [-L/usr/local/lib],
@@ -90,7 +97,8 @@ AM_COMPILELINKRUN(
    [ilmbasetest],
    [$ILMBASE_CXXFLAGS],
    [$ILMBASE_LDFLAGS],
-   [$ILMBASE_LIBS],[[
+   [$ILMBASE_LIBS],
+   [$ILMBASE_RPATH],[[
 #include <stdlib.h>
 #include <ImathFun.h>
 #ifndef IMATH_NAMESPACE 
@@ -116,7 +124,7 @@ LIBS="$LIBS -lpython$PYTHON_VERSION"
 BOOST_PYTHON_CXXFLAGS="" 
 BOOST_PYTHON_LDFLAGS="" 
 BOOST_PYTHON_LIBS=""
-if test "${PYTHON_VER_MAJ}" == 3 ; then
+if test "${PYTHON_VER_MAJ}" = 3 ; then
   BOOST_PYTHON_LIBNAME="boost_python3"
 else
   BOOST_PYTHON_LIBNAME="boost_python"
@@ -147,6 +155,7 @@ AM_COMPILELINKRUN(
    [boostpythontest],
    [$CXXFLAGS],
    [$LDFLAGS],
+   [],
    [$LIBS $BOOST_PYTHON_LIBS],[[
 #include <Python.h>
 #include <boost/python.hpp>
@@ -238,4 +247,3 @@ Python version                                  $PYTHON_VERSION
 boost::python libname                           $BOOST_PYTHON_LIBNAME
 ---------------------------------------------
 ])
-

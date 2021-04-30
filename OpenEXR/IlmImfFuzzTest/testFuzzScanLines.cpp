@@ -32,8 +32,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
-
-
+#ifdef NDEBUG
+#    undef NDEBUG
+#endif
 
 #include <ImfMultiPartOutputFile.h>
 #include <ImfMultiPartInputFile.h>
@@ -172,6 +173,7 @@ readImage (const char fileName[])
     }catch(...)
     {
         // expect exceptions
+        assert (true);
     }
     try{
         // now test Multipart interface (even for single part files)
@@ -205,6 +207,7 @@ readImage (const char fileName[])
     catch (...)
     {
         // empty
+        assert (true);
     }
 }
 

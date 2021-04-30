@@ -187,7 +187,7 @@ TileOffsets::reconstructFromFile (OPENEXR_IMF_INTERNAL_NAMESPACE::IStream &is,bo
     {
 	findTiles (is,isMultiPart,isDeep,false);
     }
-    catch (...)
+    catch (...) //NOSONAR - suppress vulnerability reports from SonarCloud.
     {
         //
         // Suppress all exceptions.  This function is called only to
@@ -279,7 +279,7 @@ TileOffsets::writeTo (OPENEXR_IMF_INTERNAL_NAMESPACE::OStream &os) const
     
     Int64 pos = os.tellp();
 
-    if (pos == -1)
+    if (pos == static_cast<Int64>(-1))
 	IEX_NAMESPACE::throwErrnoExc ("Cannot determine current file position (%T).");
 
     for (unsigned int l = 0; l < _offsets.size(); ++l)

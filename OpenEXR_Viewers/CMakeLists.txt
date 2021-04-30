@@ -1,53 +1,59 @@
-IF (WIN32)
-  CMAKE_MINIMUM_REQUIRED(VERSION 3.11)
-ELSE()
-  CMAKE_MINIMUM_REQUIRED(VERSION 3.2)
-ENDIF()
+# SPDX-License-Identifier: BSD-3-Clause
+# Copyright Contributors to the OpenEXR Project.
 
-PROJECT (openexr_viewers)
+cmake_minimum_required(VERSION 3.10)
 
-IF (NOT ILMBASE_PACKAGE_PREFIX)
-  SET (ILMBASE_PACKAGE_PREFIX ${CMAKE_INSTALL_PREFIX})
-ENDIF ()
+# we include this first to parse configure.ac and extract the version
+# numbers
+include(config/ParseConfigure.cmake)
 
-MACRO(SET_ILMBASE_INCLUDE_DIRS _target)
-  TARGET_INCLUDE_DIRECTORIES(${_target}
-    PRIVATE ${ZLIB_INCLUDE_DIR}
-    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/../../OpenEXR/config
-    PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/../../IlmBase/config
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../OpenEXR/IlmImf
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../OpenEXR/IlmImfUtil
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/Half
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/Iex
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/IexMath
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/IlmThread
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../IlmBase/Imath
-  )
-ENDMACRO()
+project(OpenEXR_Viewers VERSION ${OPENEXR_VIEWERS_VERSION})
 
-#FIND_PACKAGE (OpenGL REQUIRED)
-#FIND_PACKAGE (FLTK)
-#FIND_PACKAGE (GLUT)
-#FIND_PACKAGE (Cg)
+#######################################
+#######################################
+# This declares all the configuration variables visible
+# in cmake-gui or similar and the rest of the global
+# project setup
+#
+# Please look at this file to see what is configurable
+#######################################
+#######################################
+include(config/OpenEXRViewersSetup.cmake)
 
-INCLUDE_DIRECTORIES ( ${OPENEXR_PACKAGE_PREFIX}/include/OpenEXR )
-LINK_DIRECTORIES ( ${OPENEXR_PACKAGE_PREFIX}/lib )
-MESSAGE ( "OPENEXR_PACKAGE_PREFIX = " ${OPENEXR_PACKAGE_PREFIX})
+find_package(IlmBase ${OPENEXR_VIEWERS_VERSION} EXACT REQUIRED CONFIG)
+find_package(OpenEXR ${OPENEXR_VIEWERS_VERSION} EXACT REQUIRED CONFIG)
 
-IF (NOT WIN32)
-  SET ( PTHREAD_LIB pthread )
-ENDIF()
+# This is for newer cmake versions who know about vendor versions
+set(OpenGL_GL_PREFERENCE GLVND)
+find_package(OpenGL)
 
-##########################
-IF (FLTK_FOUND)
-  ADD_SUBDIRECTORY ( exrdisplay )
-ENDIF ()
+set(FLTK_SKIP_FLUID 1)
+find_package(FLTK)
+if(FLTK_FOUND AND TARGET OpenGL::GL)
+  add_subdirectory( exrdisplay )
+else()
+  if(NOT FLTK_FOUND)
+    message(WARNING "FLTK not found, exrdisplay will not be built")
+  endif()
+  if(NOT OpenGL_FOUND)
+    message(WARNING "OpenGL not found, exrdisplay will not be built")
+  endif()
+endif()
 
-IF (CG_FOUND AND GLUT_FOUND)
-  ADD_SUBDIRECTORY ( playexr )
-  INCLUDE_DIRECTORIES ( playexr )
-ENDIF ()
+if(NOT WIN32)
+  find_package(GLUT)
+  # nvidia doesn't seem to provide one of these...
+  #find_package(Cg)
+  include(config/LocateCg.cmake)
+
+  if(TARGET OpenGL::GLU AND TARGET Cg::CgGL AND TARGET GLUT::GLUT)
+    add_subdirectory( playexr )
+  endif()
+else()
+  message(NOTICE ": Disabling playexr, not yet ported to WIN32 platforms")
+endif()
+
+#[==[
 
 ##########################
 # Installation
@@ -60,3 +66,4 @@ INSTALL ( FILES
   ${CMAKE_INSTALL_PREFIX}/share/doc/OpenEXR-${OPENEXR_VERSION}
   )
 
+#]==]

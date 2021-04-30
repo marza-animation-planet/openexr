@@ -80,7 +80,6 @@ using IMATH_NAMESPACE::divp;
 using IMATH_NAMESPACE::modp;
 using std::string;
 using std::vector;
-using std::ifstream;
 using std::min;
 using std::max;
 using ILMTHREAD_NAMESPACE::Mutex;
@@ -348,7 +347,7 @@ reconstructLineOffsets (OPENEXR_IMF_INTERNAL_NAMESPACE::IStream &is,
                 lineOffsets[lineOffsets.size() - i - 1] = lineOffset;
         }
     }
-    catch (...)
+    catch (...) //NOSONAR - suppress vulnerability reports from SonarCloud.
     {
         //
         // Suppress all exceptions.  This functions is
@@ -1800,7 +1799,7 @@ readSampleCountForLineBlock(InputStreamMutex* streamData,
 
     
     
-    if(sampleCountTableDataSize>data->maxSampleCountTableSize)
+    if(sampleCountTableDataSize>static_cast<Int64>(data->maxSampleCountTableSize))
     {
         THROW (IEX_NAMESPACE::ArgExc, "Bad sampleCountTableDataSize read from chunk "<< lineBlockId << ": expected " << data->maxSampleCountTableSize << " or less, got "<< sampleCountTableDataSize);
     }
@@ -1839,7 +1838,7 @@ readSampleCountForLineBlock(InputStreamMutex* streamData,
     //
 
 
-    if (sampleCountTableDataSize < data->maxSampleCountTableSize)
+    if (sampleCountTableDataSize < static_cast<Int64>(data->maxSampleCountTableSize))
     {
         if(!data->sampleCountTableComp)
         {

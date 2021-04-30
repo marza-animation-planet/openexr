@@ -40,6 +40,10 @@
 #include "PyImathFixedArray.h"
 #include "PyImathOperators.h"
 
+#ifdef __clang__
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wself-assign-overloaded"
+#endif
 namespace PyImath {
 
 //
@@ -118,7 +122,7 @@ class FixedMatrix
         unref();
     }
     
-    int convert_index(int index) const
+    Py_ssize_t convert_index(int index) const
     {
         if (index < 0) index += _rows;
         if (index >= _rows || index < 0) {
@@ -130,6 +134,7 @@ class FixedMatrix
 
     void extract_slice_indices(PyObject *index, Py_ssize_t &start, Py_ssize_t &end, Py_ssize_t &step, Py_ssize_t &slicelength) const
     {
+        slicelength = 0;
         if (PySlice_Check(index)) {
 #if PY_MAJOR_VERSION > 2
             PyObject *slice = index;
@@ -141,10 +146,10 @@ class FixedMatrix
             }
 #if PY_MAJOR_VERSION > 2
         } else if (PyLong_Check(index)) {
-            ssize_t i = convert_index(PyLong_AsSsize_t(index));
+            Py_ssize_t i = convert_index(PyLong_AsSsize_t(index));
 #else
         } else if (PyInt_Check(index)) {
-            int i = convert_index(PyInt_AS_LONG(index));
+            Py_ssize_t i = convert_index(PyInt_AS_LONG(index));
 #endif
             start = i; end = i+1; step = 1; slicelength = 1;
         } else {
@@ -497,9 +502,9 @@ template <class T>
 static void add_mod_math_functions(boost::python::class_<FixedMatrix<T> > &c) {
     using namespace boost::python;
     c
-        .def(self % self)
+        .def(self % self) // NOSONAR - suppress SonarCloud bug report.
         .def(self % other<T>())
-        .def(self %= self)
+        .def(self %= self) // NOSONAR - suppress SonarCloud bug report.
         .def(self %= other<T>())
         ;
 }
@@ -508,13 +513,13 @@ template <class T>
 static void add_shift_math_functions(boost::python::class_<FixedMatrix<T> > &c) {
     using namespace boost::python;
     c
-        .def(self << self)
+        .def(self << self) // NOSONAR - suppress SonarCloud bug report.
         .def(self << other<T>())
-        .def(self <<= self)
+        .def(self <<= self) // NOSONAR - suppress SonarCloud bug report.
         .def(self <<= other<T>())
-        .def(self >> self)
+        .def(self >> self) // NOSONAR - suppress SonarCloud bug report.
         .def(self >> other<T>())
-        .def(self >>= self)
+        .def(self >>= self) // NOSONAR - suppress SonarCloud bug report.
         .def(self >>= other<T>())
         ;
 }
@@ -525,20 +530,23 @@ static void add_bitwise_math_functions(boost::python::class_<FixedMatrix<T> > &c
     c
         .def(self & self)
         .def(self & other<T>())
-        .def(self &= self)
+        .def(self &= self) // NOSONAR - suppress SonarCloud bug report.
         .def(self &= other<T>())
         .def(self | self)
         .def(self | other<T>())
-        .def(self |= self)
+        .def(self |= self) // NOSONAR - suppress SonarCloud bug report.
         .def(self |= other<T>())
         .def(self ^ self)
         .def(self ^ other<T>())
-        .def(self ^= self)
+        .def(self ^= self) // NOSONAR - suppress SonarCloud bug report.
         .def(self ^= other<T>())
         ;
 }
 
 
 }
+#ifdef __clang__
+#    pragma clang diagnostic pop
+#endif
 
 #endif

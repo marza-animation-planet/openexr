@@ -153,7 +153,7 @@ StringArrayT<T>::setitem_string_vector(PyObject *index, const StringArrayT<T> &d
     extract_slice_indices(index,start,end,step,slicelength);
         
     // we have a valid range of indices
-    if (data.len() != slicelength) {
+    if ((size_t) data.len() != slicelength) {
         PyErr_SetString(PyExc_IndexError, "Dimensions of source do not match destination");
         throw_error_already_set();
     }
@@ -168,7 +168,7 @@ void
 StringArrayT<T>::setitem_string_vector_mask(const FixedArray<int> &mask, const StringArrayT<T> &data)
 {
     size_t len = match_dimension(mask);
-    if (data.len() == len) {
+    if ((size_t) data.len() == len) {
         for (size_t i=0; i<len; ++i) {
             if (mask[i]) {
                 StringTableIndex di = _table.intern(data._table.lookup(data[i]));
@@ -181,7 +181,7 @@ StringArrayT<T>::setitem_string_vector_mask(const FixedArray<int> &mask, const S
             if (mask[i]) count += 1;
         }
 
-        if (data.len() != count) {
+        if ((size_t) data.len() != count) {
             PyErr_SetString(PyExc_IndexError, "Dimensions of source data do not match destination either masked or unmasked");
             throw_error_already_set();
         }
@@ -304,10 +304,10 @@ void register_StringArrays()
         .def("__setitem__", &StringArray::setitem_string_vector)
         .def("__setitem__", &StringArray::setitem_string_vector_mask)
         .def("__len__",&StringArray::len)
-        .def(self == self)
+        .def(self == self) // NOSONAR - suppress SonarCloud bug report.
         .def(self == other<std::string>())
         .def(other<std::string>() == self)
-        .def(self != self)
+        .def(self != self) // NOSONAR - suppress SonarCloud bug report.
         .def(self != other<std::string>())
         .def(other<std::string>() != self)
         ;
@@ -324,10 +324,10 @@ void register_StringArrays()
         .def("__setitem__", &WstringArray::setitem_string_vector)
         .def("__setitem__", &WstringArray::setitem_string_vector_mask)
         .def("__len__",&WstringArray::len)
-        .def(self == self)
+        .def(self == self) // NOSONAR - suppress SonarCloud bug report.
         .def(self == other<std::wstring>())
         .def(other<std::wstring>() == self)
-        .def(self != self)
+        .def(self != self) // NOSONAR - suppress SonarCloud bug report.
         .def(self != other<std::wstring>())
         .def(other<std::wstring>() != self)
         ;

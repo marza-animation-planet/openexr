@@ -377,7 +377,7 @@ readTileData (InputStreamMutex *streamData,
     if (levelY != ly)
         throw IEX_NAMESPACE::InputExc ("Unexpected tile y level number coordinate.");
 
-    if (dataSize > (int) ifd->tileBufferSize)
+    if (dataSize < 0 || dataSize > static_cast<int>(ifd->tileBufferSize) )
         throw IEX_NAMESPACE::InputExc ("Unexpected tile block length.");
 
     //
@@ -1312,6 +1312,13 @@ TiledInputFile::rawTileData (int &dx, int &dy,
             {
                 throw IEX_NAMESPACE::ArgExc ("rawTileData read the wrong tile");
             }
+        }
+        else
+        {
+             if(!isValidTile (dx, dy, lx, ly) )
+             {
+                 throw IEX_NAMESPACE::IoExc ("rawTileData read an invalid tile");
+             }
         }
         pixelData = tileBuffer->buffer;
     }

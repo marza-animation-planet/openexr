@@ -73,7 +73,6 @@ using IMATH_NAMESPACE::divp;
 using IMATH_NAMESPACE::modp;
 using std::string;
 using std::vector;
-using std::ifstream;
 using std::min;
 using std::max;
 using std::sort;
@@ -305,7 +304,7 @@ reconstructLineOffsets (OPENEXR_IMF_INTERNAL_NAMESPACE::IStream &is,
 		lineOffsets[lineOffsets.size() - i - 1] = lineOffset;
 	}
     }
-    catch (...)
+    catch (...) //NOSONAR - suppress vulnerability reports from SonarCloud.
     {
 	//
 	// Suppress all exceptions.  This functions is
@@ -429,8 +428,8 @@ readPixelData (InputStreamMutex *streamData,
     if (yInFile != minY)
         throw IEX_NAMESPACE::InputExc ("Unexpected data block y coordinate.");
 
-    if (dataSize > (int) ifd->lineBufferSize)
-	throw IEX_NAMESPACE::InputExc ("Unexpected data block length.");
+    if (dataSize < 0 || dataSize > static_cast<int>(ifd->lineBufferSize) )
+        throw IEX_NAMESPACE::InputExc ("Unexpected data block length.");
 
     //
     // Read the pixel data.
@@ -524,18 +523,18 @@ LineBufferTask::execute ()
     
         if (_lineBuffer->uncompressedData == 0)
         {
-            int uncompressedSize = 0;
+            size_t uncompressedSize = 0;
             int maxY = min (_lineBuffer->maxY, _ifd->maxY);
     
             for (int i = _lineBuffer->minY - _ifd->minY;
                  i <= maxY - _ifd->minY;
 		 ++i)
 	    {
-                uncompressedSize += (int) _ifd->bytesPerLine[i];
+                uncompressedSize += _ifd->bytesPerLine[i];
 	    }
     
             if (_lineBuffer->compressor &&
-                _lineBuffer->dataSize < uncompressedSize)
+                static_cast<size_t>(_lineBuffer->dataSize) < uncompressedSize)
             {
                 _lineBuffer->format = _lineBuffer->compressor->format();
 
@@ -628,11 +627,11 @@ LineBufferTask::execute ()
                     //
     
                     char *linePtr  = slice.base +
-                                        divp (y, slice.ySampling) *
-                                        slice.yStride;
+                                        intptr_t( divp (y, slice.ySampling) ) *
+                                        intptr_t( slice.yStride );
     
-                    char *writePtr = linePtr + dMinX * slice.xStride;
-                    char *endPtr   = linePtr + dMaxX * slice.xStride;
+                    char *writePtr = linePtr + intptr_t( dMinX ) * intptr_t( slice.xStride );
+                    char *endPtr   = linePtr + intptr_t( dMaxX ) * intptr_t( slice.xStride );
                     
                     copyIntoFrameBuffer (readPtr, writePtr, endPtr,
                                          slice.xStride, slice.fill,
@@ -838,18 +837,18 @@ LineBufferTaskIIF::execute()
         
         if (_lineBuffer->uncompressedData == 0)
         {
-            int uncompressedSize = 0;
+            size_t uncompressedSize = 0;
             int maxY = min (_lineBuffer->maxY, _ifd->maxY);
             
             for (int i = _lineBuffer->minY - _ifd->minY;
             i <= maxY - _ifd->minY;
             ++i)
             {
-                uncompressedSize += (int) _ifd->bytesPerLine[i];
+                uncompressedSize += _ifd->bytesPerLine[i];
             }
             
             if (_lineBuffer->compressor &&
-                _lineBuffer->dataSize < uncompressedSize)
+                static_cast<size_t>(_lineBuffer->dataSize) < uncompressedSize)
             {
                 _lineBuffer->format = _lineBuffer->compressor->format();
                 
@@ -1418,6 +1417,10 @@ ScanLineInputFile::setFrameBuffer (const FrameBuffer &frameBuffer)
                   case OPENEXR_IMF_INTERNAL_NAMESPACE::UINT :
                       offset+=2;
                       break;
+                  case OPENEXR_IMF_INTERNAL_NAMESPACE::NUM_PIXELTYPES:
+                  default:
+                      // not possible.
+                      break;
               }
               ++i;
 	}
@@ -1487,6 +1490,10 @@ ScanLineInputFile::setFrameBuffer (const FrameBuffer &frameBuffer)
                       break;
                   case OPENEXR_IMF_INTERNAL_NAMESPACE::UINT :
                       offset+=2;
+                      break;
+                  case OPENEXR_IMF_INTERNAL_NAMESPACE::NUM_PIXELTYPES:
+                  default:
+                      // not possible.
                       break;
               }
           }

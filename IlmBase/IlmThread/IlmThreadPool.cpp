@@ -48,6 +48,10 @@
 # include <memory>
 # include <atomic>
 # include <thread>
+#else
+# ifndef _WIN32
+#  include <unistd.h>
+# endif
 #endif
 
 using namespace std;
@@ -85,6 +89,8 @@ struct ThreadPool::Data
 
      Data ();
     ~Data();
+    Data (const Data&) = delete;
+    Data &operator= (const Data&)  = delete;
 
     struct SafeProvider
     {
@@ -156,8 +162,8 @@ struct ThreadPool::Data
     ThreadPoolProvider *provider;
     ThreadPoolProvider *oldprovider;
 #else
-    std::atomic<ThreadPoolProvider *> provider;
     std::atomic<int> provUsers;
+    std::atomic<ThreadPoolProvider *> provider;
 #endif
 };
 
@@ -459,7 +465,7 @@ class NullThreadPoolProvider : public ThreadPoolProvider
 // struct TaskGroup::Data
 //
 
-TaskGroup::Data::Data (): numPending (0), isEmpty (1)
+TaskGroup::Data::Data () : numPending (0), isEmpty (1)
 {
     // empty
 }
@@ -566,9 +572,11 @@ ThreadPool::Data::~Data()
 {
 #ifdef ILMBASE_FORCE_CXX03
     provider->finish();
+    delete provider;
 #else
     ThreadPoolProvider *p = provider.load( std::memory_order_relaxed );
     p->finish();
+    delete p;
 #endif
 }
 
@@ -647,11 +655,12 @@ ThreadPool::Data::setProvider (ThreadPoolProvider *p)
     }
 #else
     ThreadPoolProvider *old = provider.load( std::memory_order_relaxed );
+    // work around older gcc bug just in case
     do
     {
         if ( ! provider.compare_exchange_weak( old, p, std::memory_order_release, std::memory_order_relaxed ) )
             continue;
-    } while ( false );
+    } while (false); // NOSONAR - suppress SonarCloud bug report.
 
     // wait for any other users to finish prior to deleting, given
     // that these are just mostly to query the thread count or push a
@@ -847,5 +856,23 @@ ThreadPool::addGlobalTask (Task* task)
     globalThreadPool().addTask (task);
 }
 
+unsigned
+ThreadPool::estimateThreadCountForFileIO ()
+{
+#ifdef ILMBASE_FORCE_CXX03
+#    if defined(_WIN32)
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo (&sysinfo);
+    return static_cast<unsigned> (sysinfo.dwNumberOfProcessors);
+#    elif defined(_SC_NPROCESSORS_ONLN)
+    int count = sysconf (_SC_NPROCESSORS_ONLN);
+    return static_cast<unsigned>( count < 0 ? 0 : count );
+#    else
+    return 0;
+#    endif
+#else
+    return std::thread::hardware_concurrency ();
+#endif
+}
 
 ILMTHREAD_INTERNAL_NAMESPACE_SOURCE_EXIT

@@ -38,6 +38,7 @@
 //
 //-----------------------------------------------------------------------------
 
+#include "ImfCheckedArithmetic.h"
 #include "ImfInputFile.h"
 #include "ImfScanLineInputFile.h"
 #include "ImfTiledInputFile.h"
@@ -529,7 +530,7 @@ InputFile::initialize ()
             _data->compositor->addSource(_data->dsFile);
         }
         
-        else if (isTiled (_data->version))
+        else if (isTiled (_data->version) && !isNonImage(_data->version)) 
         {
             _data->isTiled = true;
             _data->lineOrder = _data->header.lineOrder();
@@ -572,7 +573,7 @@ InputFile::initialize ()
             _data->compositor = new CompositeDeepScanLine;
             _data->compositor->addSource(_data->dsFile);
         }
-        else if (isTiled (_data->header.type()))
+        else if (_data->header.hasType() && _data->header.type()==TILEDIMAGE)
         {
             _data->isTiled = true;
             _data->lineOrder = _data->header.lineOrder();
@@ -679,8 +680,9 @@ InputFile::setFrameBuffer (const FrameBuffer &frameBuffer)
 	    _data->cachedBuffer = new FrameBuffer();
 	    _data->offset = dataWindow.min.x;
 	    
-	    int tileRowSize = (dataWindow.max.x - dataWindow.min.x + 1) *
-			      _data->tFile->tileYSize();
+	    unsigned int tileRowSize =
+                uiMult(dataWindow.max.x - dataWindow.min.x + 1U,
+                       _data->tFile->tileYSize());
 
 	    for (FrameBuffer::ConstIterator k = frameBuffer.begin();
 		 k != frameBuffer.end();
