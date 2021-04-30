@@ -8,9 +8,10 @@ import excons.tools.zlib as zlib
 import excons.tools.threads as threads
 import excons.tools.python as python
 import excons.tools.boost as boost
+import SCons.Script # pylint: disable=import-error
 
 
-ARGUMENTS["use-c++11"] = "1"
+excons.SetArgument("use-c++11", 1)
 
 env = excons.MakeBaseEnv()
 
@@ -224,7 +225,7 @@ if rv["require"] is None:
    excons.Call("zlib", imp=["ZlibPath", "RequireZlib"])
    zlibStatic = (excons.GetArgument("zlib-static", 1, int) != 0)
    def zlibRequire(env):
-      RequireZlib(env, static=zlibStatic)
+      RequireZlib(env, static=zlibStatic) # pylint: disable=undefined-variable
 else:
    zlibRequire = rv["require"]
 
@@ -242,9 +243,9 @@ else:
    # 4100: Unreferenced format parameter
    env.Append(CPPFLAGS=" /wd4127 /wd4100")
 
-env["BUILDERS"]["GenerateHeader"] = Builder(action=Action(GenerateHeader, "Generating $TARGET ..."), suffix=".h")
+env["BUILDERS"]["GenerateHeader"] = SCons.Script.Builder(action=SCons.Script.Action(GenerateHeader, "Generating $TARGET ..."), suffix=".h")
 
-conf = Configure(env)
+conf = SCons.Script.Configure(env)
 if conf.TryCompile(gcc_include_asm_avx_check_src, ".cpp"):
    have_gcc_include_asm_avx = True
 if conf.TryCompile(_sc_nprocessors_onln_check_src, ".cpp"):
@@ -253,10 +254,10 @@ conf.Finish()
 
 binext = ("" if sys.platform != "win32" else ".exe")
 
-eluth = env.GenerateHeader("IlmBase/Half/eLut.h", File("%s/bin/generators/eLut%s" % (excons.OutputBaseDirectory(), binext)))
-tofloath = env.GenerateHeader("IlmBase/Half/toFloat.h", File("%s/bin/generators/toFloat%s" % (excons.OutputBaseDirectory(), binext)))
-b44h = env.GenerateHeader("OpenEXR/IlmImf/b44ExpLogTable.h", File("%s/bin/generators/b44ExpLogTable%s" % (excons.OutputBaseDirectory(), binext)))
-dwah = env.GenerateHeader("OpenEXR/IlmImf/dwaLookups.h", File("%s/bin/generators/dwaLookups%s" % (excons.OutputBaseDirectory(), binext)))
+eluth = env.GenerateHeader("IlmBase/Half/eLut.h", SCons.Script.File("%s/bin/generators/eLut%s" % (excons.OutputBaseDirectory(), binext)))
+tofloath = env.GenerateHeader("IlmBase/Half/toFloat.h", SCons.Script.File("%s/bin/generators/toFloat%s" % (excons.OutputBaseDirectory(), binext)))
+b44h = env.GenerateHeader("OpenEXR/IlmImf/b44ExpLogTable.h", SCons.Script.File("%s/bin/generators/b44ExpLogTable%s" % (excons.OutputBaseDirectory(), binext)))
+dwah = env.GenerateHeader("OpenEXR/IlmImf/dwaLookups.h", SCons.Script.File("%s/bin/generators/dwaLookups%s" % (excons.OutputBaseDirectory(), binext)))
 
 out_headers_dir = "%s/include/OpenEXR" % excons.OutputBaseDirectory()
 
@@ -467,7 +468,7 @@ prjs.append({"name": IexMathName(False),
              "cppflags": nowarn_flags,
              "incdirs": ilmbase_incdirs + configs_incdirs,
              "srcs": excons.glob("IlmBase/IexMath/*.cpp"),
-             "libs": [File(IexPath(False))]})
+             "libs": [SCons.Script.File(IexPath(False))]})
 
 if not lib_suffix:
    prjs[-1]["version"] = lib_version_str
@@ -516,7 +517,7 @@ prjs.append({"name": ImathName(False),
              "cppflags": nowarn_flags,
              "incdirs": ilmbase_incdirs + configs_incdirs,
              "srcs": excons.glob("IlmBase/Imath/*.cpp"),
-             "libs": [File(IexPath(False))]})
+             "libs": [SCons.Script.File(IexPath(False))]})
 
 if not lib_suffix:
    prjs[-1]["version"] = lib_version_str
@@ -562,7 +563,7 @@ prjs.append({"name": IlmThreadName(False),
              "cppflags": nowarn_flags,
              "incdirs": ilmbase_incdirs + configs_incdirs,
              "srcs": ilmthread_srcs,
-             "libs": [File(IexPath(False))]})
+             "libs": [SCons.Script.File(IexPath(False))]})
 
 if not lib_suffix:
    prjs[-1]["version"] = lib_version_str
@@ -605,9 +606,9 @@ prjs.append({"name": "b44ExpLogTable",
              "cppflags": nowarn_flags,
              "incdirs": ilmbase_incdirs + openexr_incdirs + configs_incdirs,
              "srcs": ["OpenEXR/IlmImf/b44ExpLogTable.cpp"],
-             "libs": [File(IlmThreadPath(True)),
-                      File(IexPath(True)),
-                      File(HalfPath(True))],
+             "libs": [SCons.Script.File(IlmThreadPath(True)),
+                      SCons.Script.File(IexPath(True)),
+                      SCons.Script.File(HalfPath(True))],
              "custom": [threads.Require]})
 
 prjs.append({"name": "dwaLookups",
@@ -618,9 +619,9 @@ prjs.append({"name": "dwaLookups",
              "cppflags": nowarn_flags,
              "incdirs": ilmbase_incdirs + openexr_incdirs + configs_incdirs,
              "srcs": ["OpenEXR/IlmImf/dwaLookups.cpp"],
-             "libs": [File(IlmThreadPath(True)),
-                      File(IexPath(True)),
-                      File(HalfPath(True))],
+             "libs": [SCons.Script.File(IlmThreadPath(True)),
+                      SCons.Script.File(IexPath(True)),
+                      SCons.Script.File(HalfPath(True))],
              "custom": [threads.Require]})
 
 prjs.append({"name": IlmImfName(True),
@@ -640,10 +641,10 @@ prjs.append({"name": IlmImfName(False),
              "cppflags": nowarn_flags,
              "incdirs": ilmbase_incdirs + openexr_incdirs + configs_incdirs,
              "srcs": ilmimf_srcs,
-             "libs": [File(IlmThreadPath(False)),
-                      File(ImathPath(False)),
-                      File(IexPath(False)),
-                      File(HalfPath(False))],
+             "libs": [SCons.Script.File(IlmThreadPath(False)),
+                      SCons.Script.File(ImathPath(False)),
+                      SCons.Script.File(IexPath(False)),
+                      SCons.Script.File(HalfPath(False))],
              "custom": [threads.Require, zlibRequire]})
 
 if not lib_suffix:
@@ -685,11 +686,11 @@ prjs.append({"name": IlmImfUtilName(False),
              "cppflags": nowarn_flags,
              "incdirs": ilmbase_incdirs + openexr_incdirs + configs_incdirs,
              "srcs": excons.glob("OpenEXR/IlmImfUtil/*.cpp"),
-             "libs": [File(IlmImfPath(False)),
-                      File(IlmThreadPath(False)),
-                      File(ImathPath(False)),
-                      File(IexPath(False)),
-                      File(HalfPath(False))],
+             "libs": [SCons.Script.File(IlmImfPath(False)),
+                      SCons.Script.File(IlmThreadPath(False)),
+                      SCons.Script.File(ImathPath(False)),
+                      SCons.Script.File(IexPath(False)),
+                      SCons.Script.File(HalfPath(False))],
              "custom": [threads.Require, zlibRequire]})
 
 if not lib_suffix:
@@ -785,8 +786,8 @@ prjs.append({"name": PyIexName(False),
              "cppflags": nowarn_flags,
              "incdirs": ilmbase_incdirs + openexr_incdirs + configs_incdirs,
              "srcs": pyiex_srcs,
-             "libs": [File(IexMathPath(False)),
-                      File(IexPath(False))],
+             "libs": [SCons.Script.File(IexMathPath(False)),
+                      SCons.Script.File(IexPath(False))],
              "custom": [python.SoftRequire, boost.Require(libs=["python"])]})
 
 if not lib_suffix:
@@ -819,10 +820,10 @@ prjs.append({"name": PyImathName(False),
              "cppflags": nowarn_flags,
              "incdirs": [out_headers_dir],
              "srcs": pyimath_srcs,
-             "libs": [File(PyIexPath(False)),
-                      File(ImathPath(False)),
-                      File(IexMathPath(False)),
-                      File(IexPath(False))],
+             "libs": [SCons.Script.File(PyIexPath(False)),
+                      SCons.Script.File(ImathPath(False)),
+                      SCons.Script.File(IexMathPath(False)),
+                      SCons.Script.File(IexPath(False))],
              "custom": [python.SoftRequire, boost.Require(libs=["python"])]})
 
 if not lib_suffix:
@@ -843,8 +844,8 @@ prjs.append({"name": iexmodulename,
              "cppflags": nowarn_flags,
              "incdirs": [out_headers_dir],
              "srcs": ["PyIlmBase/PyIex/iexmodule.cpp"],
-             "libs": [File(PyIexPath(pyilmbase_static))] +
-                     [File(IexMathPath(True)), File(IexPath(True))] if pyilmbase_static else [],
+             "libs": [SCons.Script.File(PyIexPath(pyilmbase_static))] +
+                     [SCons.Script.File(IexMathPath(True)), SCons.Script.File(IexPath(True))] if pyilmbase_static else [],
              "custom": [python.SoftRequire, boost.Require(libs=["python"])]})
 
 imathmodulename = ("imath" if sys.platform == "win32" else "imathmodule")
@@ -860,8 +861,8 @@ prjs.append({"name": imathmodulename,
              "cppflags": nowarn_flags,
              "incdirs": [out_headers_dir],
              "srcs": ["PyIlmBase/PyImath/imathmodule.cpp"],
-             "libs": [File(PyImathPath(pyilmbase_static)), File(PyIexPath(pyilmbase_static))] +
-                     [File(IexMathPath(True)), File(ImathPath(True)), File(IexPath(True))] if pyilmbase_static else [],
+             "libs": [SCons.Script.File(PyImathPath(pyilmbase_static)), SCons.Script.File(PyIexPath(pyilmbase_static))] +
+                     [SCons.Script.File(IexMathPath(True)), SCons.Script.File(ImathPath(True)), SCons.Script.File(IexPath(True))] if pyilmbase_static else [],
              "custom": [python.SoftRequire, boost.Require(libs=["python"])]})
 
 # Command line tools
@@ -875,11 +876,11 @@ for f in excons.glob("OpenEXR/exr*/CMakeLists.txt"):
                 "cppflags": nowarn_flags,
                 "incdirs": [d] + ilmbase_incdirs + openexr_incdirs + configs_incdirs,
                 "srcs": excons.glob(d+"/*.cpp"),
-                "libs": [File(IlmImfPath(True)),
-                         File(IlmThreadPath(True)),
-                         File(ImathPath(True)),
-                         File(IexPath(True)),
-                         File(HalfPath(True))],
+                "libs": [SCons.Script.File(IlmImfPath(True)),
+                         SCons.Script.File(IlmThreadPath(True)),
+                         SCons.Script.File(ImathPath(True)),
+                         SCons.Script.File(IexPath(True)),
+                         SCons.Script.File(HalfPath(True))],
                 "custom": [threads.Require, zlibRequire]})
 
 # Tests
@@ -890,7 +891,7 @@ prjs.append({"name": "HalfTest",
              "cppflags": nowarn_flags,
              "incdirs": ["IlmBase/HalfTest"] + ilmbase_incdirs + configs_incdirs,
              "srcs": excons.glob("IlmBase/HalfTest/*.cpp"),
-             "libs": [File(HalfPath(True))]})
+             "libs": [SCons.Script.File(HalfPath(True))]})
 
 prjs.append({"name": "IexTest",
              "type": "program",
@@ -899,7 +900,7 @@ prjs.append({"name": "IexTest",
              "cppflags": nowarn_flags,
              "incdirs": ["IlmBase/IexTest"] + ilmbase_incdirs + configs_incdirs,
              "srcs": excons.glob("IlmBase/IexTest/*.cpp"),
-             "libs": [File(IexPath(True))]})
+             "libs": [SCons.Script.File(IexPath(True))]})
 
 prjs.append({"name": "ImathTest",
              "type": "program",
@@ -908,8 +909,8 @@ prjs.append({"name": "ImathTest",
              "cppflags": nowarn_flags,
              "incdirs": ["IlmBase/ImathTest"] + ilmbase_incdirs + configs_incdirs,
              "srcs": excons.glob("IlmBase/ImathTest/*.cpp"),
-             "libs": [File(ImathPath(True)),
-                      File(IexPath(True))]})
+             "libs": [SCons.Script.File(ImathPath(True)),
+                      SCons.Script.File(IexPath(True))]})
 
 prjs.append({"name": "IlmImfTest",
              "type": "program",
@@ -919,11 +920,11 @@ prjs.append({"name": "IlmImfTest",
              "cppflags": nowarn_flags,
              "incdirs": ["OpenEXR/IlmImfTest"] + ilmbase_incdirs + openexr_incdirs + configs_incdirs,
              "srcs": excons.glob("OpenEXR/IlmImfTest/*.cpp"),
-             "libs": [File(IlmImfPath(True)),
-                      File(IlmThreadPath(True)),
-                      File(ImathPath(True)),
-                      File(IexPath(True)),
-                      File(HalfPath(True))],
+             "libs": [SCons.Script.File(IlmImfPath(True)),
+                      SCons.Script.File(IlmThreadPath(True)),
+                      SCons.Script.File(ImathPath(True)),
+                      SCons.Script.File(IexPath(True)),
+                      SCons.Script.File(HalfPath(True))],
              "custom": [threads.Require, zlibRequire]})
 
 prjs.append({"name": "IlmImfUtilTest",
@@ -934,12 +935,12 @@ prjs.append({"name": "IlmImfUtilTest",
              "cppflags": nowarn_flags,
              "incdirs": ["OpenEXR/IlmImfUtilTest"] + ilmbase_incdirs + openexr_incdirs + configs_incdirs,
              "srcs": excons.glob("OpenEXR/IlmImfUtilTest/*.cpp"),
-             "libs": [File(IlmImfUtilPath(True)),
-                      File(IlmImfPath(True)),
-                      File(IlmThreadPath(True)),
-                      File(ImathPath(True)),
-                      File(IexPath(True)),
-                      File(HalfPath(True))],
+             "libs": [SCons.Script.File(IlmImfUtilPath(True)),
+                      SCons.Script.File(IlmImfPath(True)),
+                      SCons.Script.File(IlmThreadPath(True)),
+                      SCons.Script.File(ImathPath(True)),
+                      SCons.Script.File(IexPath(True)),
+                      SCons.Script.File(HalfPath(True))],
              "custom": [threads.Require, zlibRequire]})
 
 prjs.append({"name": "PyIlmBaseTest",
@@ -1133,4 +1134,4 @@ env.Alias("openexr-tests", [tgts["HalfTest"],
                             tgts["IlmImfUtilTest"],
                             tgts["PyIlmBaseTest"]])
 
-Export("HalfName HalfPath RequireHalf IexName IexPath IexMathName IexMathPath ImathName ImathPath RequireImath IlmThreadName IlmThreadPath RequireIlmThread IlmImfName IlmImfPath RequireIlmImf IlmImfUtilName IlmImfUtilPath PyIexName PyIexPath RequirePyIex PyImathName PyImathPath RequirePyImath")
+SCons.Script.Export("HalfName HalfPath RequireHalf IexName IexPath IexMathName IexMathPath ImathName ImathPath RequireImath IlmThreadName IlmThreadPath RequireIlmThread IlmImfName IlmImfPath RequireIlmImf IlmImfUtilName IlmImfUtilPath PyIexName PyIexPath RequirePyIex PyImathName PyImathPath RequirePyImath")
