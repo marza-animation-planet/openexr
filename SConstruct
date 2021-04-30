@@ -10,11 +10,12 @@ import excons.tools.python as python
 import excons.tools.boost as boost
 import SCons.Script # pylint: disable=import-error
 
+excons.SetArgument("use-c++11", 1)
 
 env = excons.MakeBaseEnv()
 
 
-lib_version = (2, 2, 1)
+lib_version = (2, 2, 2)
 lib_version_str = "%d.%d.%d" % lib_version
 lib_suffix = excons.GetArgument("openexr-suffix", "-2_2")
 #static_lib_suffix = lib_suffix + excons.GetArgument("openexr-static-suffix", "_s")
