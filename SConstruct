@@ -23,8 +23,15 @@ lib_suffix = excons.GetArgument("openexr-suffix", "-%d_%d" % (lib_version[0], li
 namespace_version = (excons.GetArgument("openexr-namespace-version", 1, int) != 0)
 zlib_win_api = (excons.GetArgument("openexr-zlib-winapi", 0, int) != 0)
 pyilmbase_static = (excons.GetArgument("ilmbase-python-staticlibs", 1, int) != 0)
+have_pthread = False
+have_posix_semaphores = False
 have_gcc_include_asm_avx = False
 have_sysconf_nprocessors_onln = False
+have_ucontext = False
+have_control_register_support = False
+have_sigcontext = False
+have_sigcontext_control_register_support = False
+pyilmbase_exceptions = False
 
 gcc_include_asm_avx_check_src = """
 int main()
@@ -51,13 +58,37 @@ int main()
 }
 """
 
-def CheckConfigStatus(path):
+control_register_support_check_src = """
+#include <ucontext.h>
+int main()
+{
+   struct _libc_fpstate s;
+   s.mxcsr;
+}
+"""
+
+sigcontext_control_register_support_check_src = """
+#include <asm/sigcontext.h>
+int main()
+{
+   struct _fpstate s;
+   s.mxcsr;
+}
+"""
+
+
+
+def CheckConfigStatus(path, includes=None, excludes=None):
    if not os.path.isfile(path):
       return True
    else:
       with open(path, "r") as f:
          for line in f.readlines():
             spl = line.strip().split(" ")
+            if includes is not None and spl[0] not in includes:
+               continue
+            if excludes is not None and spl[0] in excludes:
+               continue
             if spl[0] == "namespace_version":
                val = (int(spl[1]) != 0)
                if val != namespace_version:
@@ -73,16 +104,75 @@ def CheckConfigStatus(path):
                val = (int(spl[1]) != 0)
                if val != have_sysconf_nprocessors_onln:
                   return True
+            elif spl[0] == "have_ucontext":
+               val = (int(spl[1]) != 0)
+               if val != have_ucontext:
+                  return True
+            elif spl[0] == "have_control_register_support":
+               val = (int(spl[1]) != 0)
+               if val != have_control_register_support:
+                  return True
+            elif spl[0] == "have_pthread":
+               val = (int(spl[1]) != 0)
+               if val != have_pthread:
+                  return True
+            elif spl[0] == "have_posix_semaphores":
+               val = (int(spl[1]) != 0)
+               if val != have_pthread:
+                  return True
       return False
 
 def WriteConfigStatus(path):
    with open(path, "w") as f:
       f.write("namespace_version %d\n" % namespace_version)
       f.write("platform %s\n" % sys.platform)
+      f.write("have_pthread %d\n" % have_pthread)
+      f.write("have_posix_semaphores %d\n" % have_posix_semaphores)
       f.write("have_gcc_include_asm_avx %d\n" % have_gcc_include_asm_avx)
       f.write("have_sysconf_nprocessors_onln %d\n" % have_sysconf_nprocessors_onln)
+      f.write("have_ucontext %d\n" % have_ucontext)
+      f.write("have_control_register_support %d\n" % have_control_register_support)
 
-def GenerateIlmBaseConfig(config_header):   
+def GenerateIlmBaseConfigInternal(config_header):
+   update = False
+
+   if not os.path.isfile(config_header):
+      update = True
+   else:
+      update = CheckConfigStatus("ilmbase_config_internal.status", includes=("have_ucontext", "have_control_register_support"))
+      if update:
+         os.remove(config_header)
+
+   if update:
+      print("Update '%s'..." % os.path.basename(config_header))
+
+      WriteConfigStatus("ilmbase_config_internal.status")
+
+      d = os.path.dirname(config_header)
+      if not os.path.isdir(d):
+         os.makedirs(d)
+
+      with open(config_header, "w") as f:
+         f.write("#ifndef INCLUDED_ILMBASE_CONFIG_INTERNAL_H\n")
+         f.write("#define INCLUDED_ILMBASE_CONFIG_INTERNAL_H 1\n")
+         f.write("\n")
+         # ILMBASE_HAVE_SIGCONTEXT_H ?
+         # ILMBASE_HAVE_SIGCONYEXT_CONTROL_REGISTER_SUPPORT ?
+         if have_ucontext:
+            f.write("#define HAVE_UCONTEXT_H 1\n")
+            if have_control_register_support:
+               f.write("#define ILMBASE_HAVE_CONTROL_REGISTER_SUPPORT 1\n")
+            elif have_sigcontext:
+               #f.write("#define ILMBASE_HAVE_SIGCONTEXT_H 1\n")
+               pass
+               if have_sigcontext_control_register_support:
+                  #f.write("#define ILMBASE_HAVE_SIGCONTEXT_CONTROL_REGISTER_SUPPORT 1\n")
+                  pass
+         f.write("\n")
+         f.write("#endif\n")
+         f.write("\n")
+
+def GenerateIlmBaseConfig(config_header):
    update = False
 
    if not os.path.isfile(config_header):
@@ -101,31 +191,30 @@ def GenerateIlmBaseConfig(config_header):
       if not os.path.isdir(d):
          os.makedirs(d)
 
-      if sys.platform == "win32":
-         shutil.copy("IlmBase/config.windows/IlmBaseConfig.h", config_header)
-      else:
-         with open(config_header, "w") as f:
-            f.write("#define HAVE_PTHREAD 1\n")
-            if sys.platform != "darwin":
-               f.write("#define ILMBASE_HAVE_LARGE_STACK 1\n")
-               f.write("#define HAVE_POSIX_SEMAPHORES 1\n")
-               f.write("#define ILMBASE_HAVE_CONTROL_REGISTER_SUPPORT 1\n")
-            f.write("\n")
-      
       with open(config_header, "a") as f:
+         f.write("#ifndef INCLUDED_ILMBASE_CONFIG_H\n")
+         f.write("#define INCLUDED_ILMBASE_CONFIG_H 1\n")
+         f.write("\n")
+         if have_pthread:
+            f.write("#define HAVE_PTHREAD 1\n")
+            if have_posix_semaphores:
+               f.write("#define HAVE_POSIX_SEMAPHORES 1\n")
+         f.write("#define ILMBASE_HAVE_LARGE_STACK 1\n")
+         f.write("\n")
          if namespace_version:
             api_version = "%s_%s" % (lib_version[0], lib_version[1])
             f.write("#define ILMBASE_INTERNAL_NAMESPACE_CUSTOM 1\n")
             f.write("#define IMATH_INTERNAL_NAMESPACE Imath_%s\n" % api_version)
-            f.write("#define IEX_INTERNAL_NAMESPACE Iex%s\n" % api_version)
+            f.write("#define IEX_INTERNAL_NAMESPACE Iex_%s\n" % api_version)
             f.write("#define ILMTHREAD_INTERNAL_NAMESPACE IlmThread_%s\n" % api_version)
+            f.write("\n")
          else:
             f.write("#define ILMBASE_INTERNAL_NAMESPACE_CUSTOM 0\n")
             f.write("#define IMATH_INTERNAL_NAMESPACE Imath\n")
             f.write("#define IEX_INTERNAL_NAMESPACE Iex\n")
             f.write("#define ILMTHREAD_INTERNAL_NAMESPACE IlmThread\n")
-         f.write("\n")
-
+            f.write("\n")
+         f.write("#define ILMBASE_NAMESPACE_CUSTOM 0\n")
          f.write("#define IMATH_NAMESPACE Imath\n")
          f.write("#define IEX_NAMESPACE Iex\n")
          f.write("#define ILMTHREAD_NAMESPACE IlmThread\n")
@@ -142,6 +231,44 @@ def GenerateIlmBaseConfig(config_header):
          f.write("#define ILMBASE_VERSION_HEX ((ILMBASE_VERSION_MAJOR << 24) | \\\n")
          f.write("                             (ILMBASE_VERSION_MINOR << 16) | \\\n")
          f.write("                             (ILMBASE_VERSION_PATCH <<  8))\n")
+         f.write("\n")
+         f.write("#endif\n")
+         f.write("\n")
+
+def GenerateOpenEXRConfigInternal(config_header):
+   update = False
+
+   if not os.path.isfile(config_header):
+      update = True
+   else:
+      update = CheckConfigStatus("openexr_config_internal.status")
+      if update:
+         os.remove(config_header)
+
+   if update:
+      print("Update '%s'..." % os.path.basename(config_header))
+
+      WriteConfigStatus("openexr_config_internal.status")
+
+      d = os.path.dirname(config_header)
+      if not os.path.isdir(d):
+         os.makedirs(d)
+
+      with open(config_header, "w") as f:
+         f.write("#ifndef INCLUDED_OPENEXR_CONFIG_INTERNAL_H\n")
+         f.write("#define INCLUDED_OPENEXR_CONFIG_INTERNAL_H 1\n")
+         f.write("\n")
+         f.write("#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1\n")
+         if sys.platform == "darwin":
+            f.write("#define OPENEXR_IMF_HAVE_DARWIN 1\n")
+         elif sys.platform.startswith("linux"):
+            f.write("#define OPENEXR_IMF_HAVE_LINUX_PROCFS 1\n")
+         if have_gcc_include_asm_avx:
+            f.write("#define OPENEXR_IMF_HAVE_GCC_INLINE_ASM_AVX 1\n")
+         if have_sysconf_nprocessors_onln:
+            f.write("#define OPENEXR_IMF_HAVE_SYSCONF_NPROCESSORS_ONLN 1\n")
+         f.write("\n")
+         f.write("#endif")
          f.write("\n")
 
 def GenerateOpenEXRConfig(config_header):
@@ -164,27 +291,20 @@ def GenerateOpenEXRConfig(config_header):
          os.makedirs(d)
 
       with open(config_header, "w") as f:
-         if sys.platform == "win32":
-            f.write("#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1\n")
-         elif sys.platform == "darwin":
-            f.write("#define OPENEXR_IMF_HAVE_DARWIN 1\n")
-            f.write("#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1\n")
-            f.write("#include <string.h>\n")
-         else:
-            f.write("#define OPENEXR_IMF_HAVE_LINUX_PROCFS 1\n")
-            f.write("#define OPENEXR_IMF_HAVE_COMPLETE_IOMANIP 1\n")
-            f.write("#define OPENEXR_IMF_HAVE_LARGE_STACK 1\n")
+         f.write("#ifndef INCLUDED_OPENEXR_CONFIG_H\n")
+         f.write("#define INCLUDED_OPENEXR_CONFIG_H 1\n")
          f.write("\n")
 
          if namespace_version:
             api_version = "%s_%s" % (lib_version[0], lib_version[1])
             f.write("#define OPENEXR_IMF_INTERNAL_NAMESPACE_CUSTOM 1\n")
-            f.write("#define OPENEXR_IMF_NAMESPACE Imf\n")
             f.write("#define OPENEXR_IMF_INTERNAL_NAMESPACE Imf_%s\n" % api_version)
          else:
             f.write("#define OPENEXR_IMF_INTERNAL_NAMESPACE_CUSTOM 0\n")
-            f.write("#define OPENEXR_IMF_NAMESPACE Imf\n")
             f.write("#define OPENEXR_IMF_INTERNAL_NAMESPACE Imf\n")
+         f.write("\n")
+         f.write("#define OPENEXR_IMF_NAMESPACE_CUSTOM 0\n")
+         f.write("#define OPENEXR_IMF_NAMESPACE Imf\n")
          f.write("\n")
 
          f.write("#define OPENEXR_VERSION_STRING \"%d.%d.%d\"\n" % lib_version)
@@ -197,11 +317,71 @@ def GenerateOpenEXRConfig(config_header):
          f.write("                             (OPENEXR_VERSION_PATCH <<  8))\n")
          f.write("\n")
 
-         if have_gcc_include_asm_avx:
-            f.write("#define OPENEXR_IMF_HAVE_GCC_INLINE_ASM_AVX 1\n")
+         f.write("\n")
+         f.write("#endif\n")
+         f.write("\n")
 
-         if have_sysconf_nprocessors_onln:
-            f.write("#define OPENEXR_IMF_HAVE_SYSCONF_NPROCESSORS_ONLN 1\n")
+def GeneratePyIlmBaseConfigInternal(config_header):
+   update = False
+
+   if not os.path.isfile(config_header):
+      update = True
+   else:
+      update = CheckConfigStatus("pyilmbase_config_internal.status")
+      if update:
+         os.remove(config_header)
+
+   if update:
+      print("Update '%s'..." % os.path.basename(config_header))
+
+      WriteConfigStatus("pyilmbase_config_internal.status")
+
+      d = os.path.dirname(config_header)
+      if not os.path.isdir(d):
+         os.makedirs(d)
+
+      with open(config_header, "w") as f:
+         f.write("#ifndef INCLUDED_PYILMBASE_CONFIG_H\n")
+         f.write("#define INCLUDED_PYILMBASE_CONFIG_H 1\n")
+         f.write("\n")
+         if pyilmbase_exceptions:
+            f.write("#define PYIMATH_ENABLE_EXCEPTIONS 1\n")
+         f.write("\n")
+         f.write("#endif")
+         f.write("\n")
+
+def GeneratePyIlmBaseConfig(config_header):
+   update = False
+
+   if not os.path.isfile(config_header):
+      update = True
+   else:
+      update = CheckConfigStatus("pyilmbase_config.status")
+      if update:
+         os.remove(config_header)
+
+   if update:
+      print("Update '%s'..." % os.path.basename(config_header))
+
+      WriteConfigStatus("pyilmbase_config.status")
+
+      d = os.path.dirname(config_header)
+      if not os.path.isdir(d):
+         os.makedirs(d)
+
+      with open(config_header, "w") as f:
+         f.write("#ifndef INCLUDED_PYILMBASE_CONFIG_INTERNAL_H\n")
+         f.write("#define INCLUDED_PYILMBASE_CONFIG_INTERNAL_H 1\n")
+         f.write("\n")
+         f.write("#define HAVE_COMPLETE_IOMANIP 1\n")
+         f.write("#define HAVE_LARGE_STACK 1\n")
+         if sys.platform == "darwin":
+            f.write("#define HAVE_DARWIN 1\n")
+         elif sys.platform.startswith("linux"):
+            f.write("#define HAVE_LINUX_PROCFS 1\n")
+         f.write("\n")
+         f.write("#endif")
+         f.write("\n")
 
 def GenerateHeader(target, source, env):
    p = subprocess.Popen([str(source[0])], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -246,10 +426,23 @@ else:
 env["BUILDERS"]["GenerateHeader"] = SCons.Script.Builder(action=SCons.Script.Action(GenerateHeader, "Generating $TARGET ..."), suffix=".h")
 
 conf = SCons.Script.Configure(env)
+have_pthread = (conf.CheckCHeader("pthread.h") and conf.CheckLib("pthread"))
+if have_pthread and sys.platform not in ("win32", "darwin"):
+   if conf.CheckCHeader("semaphore.h"):
+      have_posix_semaphores = True
 if conf.TryCompile(gcc_include_asm_avx_check_src, ".cpp"):
    have_gcc_include_asm_avx = True
 if conf.TryCompile(_sc_nprocessors_onln_check_src, ".cpp"):
    have_sysconf_nprocessors_onln = True
+if conf.CheckCHeader("ucontext.h"):
+   have_ucontext = True
+   if conf.TryCompile(control_register_support_check_src, ".cpp"):
+      have_control_register_support = True
+   else:
+      if conf.CheckCHeader("asm/sigcontext.h"):
+         have_sigcontext = True
+         if conf.TryCompile(sigcontext_control_register_support_check_src, ".cpp"):
+            have_sigcontext_control_register_support = True
 conf.Finish()
 
 binext = ("" if sys.platform != "win32" else ".exe")
@@ -262,8 +455,11 @@ dwah = env.GenerateHeader("OpenEXR/IlmImf/dwaLookups.h", SCons.Script.File("%s/b
 out_headers_dir = "%s/include/OpenEXR" % excons.OutputBaseDirectory()
 
 GenerateIlmBaseConfig("%s/IlmBaseConfig.h" % out_headers_dir)
-
+GenerateIlmBaseConfigInternal("%s/IlmBaseConfigInternal.h" % out_headers_dir)
 GenerateOpenEXRConfig("%s/OpenEXRConfig.h" % out_headers_dir)
+GenerateOpenEXRConfigInternal("%s/OpenEXRConfigInternal.h" % out_headers_dir)
+GeneratePyIlmBaseConfig("%s/PyIlmBaseConfig.h" % out_headers_dir)
+GeneratePyIlmBaseConfigInternal("%s/PyIlmBaseConfigInternal.h" % out_headers_dir)
 
 half_headers = env.Install(out_headers_dir, ["IlmBase/Half/half.h",
                                              "IlmBase/Half/halfExport.h",
@@ -335,7 +531,7 @@ if pyilmbase_static:
    pymod_defs.append("PYILMBASE_STATICLIBS")
 if excons.GetArgument("boost-python-static", excons.GetArgument("boost-static", 0, int), int) != 0:
    pymod_defs.append("PYILMBASE_USE_STATIC_BOOST_PYTHON")
-
+print(pymod_defs)
 prjs = []
 
 ilmbase_incdirs = ["IlmBase/Half", "IlmBase/Iex", "IlmBase/IexMath", "IlmBase/Imath", "IlmBase/IlmThread"]
@@ -952,11 +1148,11 @@ prjs.append({"name": "PyIlmBaseTest",
 # Help setup (scons -h)
 
 excons.AddHelpOptions(openexr="""OPENEXR OPTIONS
-  openexr-suffix=<str>          : Library suffix                     ["-2_2"]
+  openexr-suffix=<str>          : Library suffix                     ["%s"]
   openexr-namespace-version=0|1 : Internally use versioned namespace [1]
   ilmbase-python-staticlibs=0|1 : Link PyIex and PyImath static libs [1]
                                   for iex and imath python modules
-  openexr-zlib-winapi=0|1       : Use zlib win API                   [0]""")
+  openexr-zlib-winapi=0|1       : Use zlib win API                   [0]""" % "-%d_%d" % (lib_version[0], lib_version[1]))
 
 targets_help = {"Half-static": "Half static library",
                 "Half-shared": "Half shared library",

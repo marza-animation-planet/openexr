@@ -60,6 +60,7 @@ build-nuget/
 /debug
 /.sconf_temp
 *config.status
+*config_internal.status
 config.log
 excons.cache
 IlmBase/Half/eLut.h
