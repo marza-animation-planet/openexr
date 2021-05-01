@@ -261,6 +261,11 @@ struct DeepScanLineInputFile::Data: public Mutex
     Data (int numThreads);
     ~Data ();
 
+    Data (const Data& data) = delete;
+    Data& operator = (const Data& data) = delete;
+    Data (Data&& data) = delete;
+    Data& operator = (Data&& data) = delete;
+    
     inline LineBuffer * getLineBuffer (int number); // hash function from line
                                                     // buffer indices into our
                                                     // vector of line buffers
@@ -1048,8 +1053,6 @@ DeepScanLineInputFile::DeepScanLineInputFile
             delete _data->_streamData;
         }
         if (_data)       delete _data;
-
-        throw;
    }
 
     readLineOffsets (*_data->_streamData->is,

@@ -16,7 +16,7 @@ excons.SetArgument("use-c++11", 1)
 env = excons.MakeBaseEnv()
 
 
-lib_version = (2, 4, 2)
+lib_version = (2, 5, 0)
 lib_version_str = "%d.%d.%d" % lib_version
 lib_suffix = excons.GetArgument("openexr-suffix", "-%d_%d" % (lib_version[0], lib_version[1]))
 #static_lib_suffix = lib_suffix + excons.GetArgument("openexr-static-suffix", "_s")
@@ -383,14 +383,6 @@ def GeneratePyIlmBaseConfig(config_header):
          f.write("#endif")
          f.write("\n")
 
-def GenerateHeader(target, source, env):
-   p = subprocess.Popen([str(source[0])], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-   out, _ = p.communicate()
-   with open(str(target[0]), "w") as f:
-      for l in out.split("\r\n"):
-         f.write(l+"\n")
-   return None
-
 
 # Zlib dependency
 def zlibName(static):
@@ -423,7 +415,6 @@ else:
    # 4100: Unreferenced format parameter
    env.Append(CPPFLAGS=" /wd4127 /wd4100")
 
-env["BUILDERS"]["GenerateHeader"] = SCons.Script.Builder(action=SCons.Script.Action(GenerateHeader, "Generating $TARGET ..."), suffix=".h")
 
 conf = SCons.Script.Configure(env)
 have_pthread = (conf.CheckCHeader("pthread.h") and conf.CheckLib("pthread"))
@@ -447,11 +438,6 @@ conf.Finish()
 
 binext = ("" if sys.platform != "win32" else ".exe")
 
-eluth = env.GenerateHeader("IlmBase/Half/eLut.h", SCons.Script.File("%s/bin/generators/eLut%s" % (excons.OutputBaseDirectory(), binext)))
-tofloath = env.GenerateHeader("IlmBase/Half/toFloat.h", SCons.Script.File("%s/bin/generators/toFloat%s" % (excons.OutputBaseDirectory(), binext)))
-b44h = env.GenerateHeader("OpenEXR/IlmImf/b44ExpLogTable.h", SCons.Script.File("%s/bin/generators/b44ExpLogTable%s" % (excons.OutputBaseDirectory(), binext)))
-dwah = env.GenerateHeader("OpenEXR/IlmImf/dwaLookups.h", SCons.Script.File("%s/bin/generators/dwaLookups%s" % (excons.OutputBaseDirectory(), binext)))
-
 out_headers_dir = "%s/include/OpenEXR" % excons.OutputBaseDirectory()
 
 GenerateIlmBaseConfig("%s/IlmBaseConfig.h" % out_headers_dir)
@@ -464,7 +450,9 @@ GeneratePyIlmBaseConfigInternal("%s/PyIlmBaseConfigInternal.h" % out_headers_dir
 half_headers = env.Install(out_headers_dir, ["IlmBase/Half/half.h",
                                              "IlmBase/Half/halfExport.h",
                                              "IlmBase/Half/halfFunction.h",
-                                             "IlmBase/Half/halfLimits.h"] + eluth + tofloath)
+                                             "IlmBase/Half/halfLimits.h",
+                                             "IlmBase/Half/eLut.h",
+                                             "IlmBase/Half/toFloat.h"])
 
 iex_headers = env.Install(out_headers_dir, excons.glob("IlmBase/Iex/*.h"))
 
@@ -495,7 +483,7 @@ def ilmimf_filter(x):
    name = os.path.splitext(os.path.basename(x))[0]
    return (name not in ["b44ExpLogTable", "dwaLookups"])
 
-ilmimf_headers = env.Install(out_headers_dir, filter(ilmimf_filter, excons.glob("OpenEXR/IlmImf/*.h")) + b44h + dwah)
+ilmimf_headers = env.Install(out_headers_dir, filter(ilmimf_filter, excons.glob("OpenEXR/IlmImf/*.h")))
 
 ilmimf_srcs = filter(ilmimf_filter, excons.glob("OpenEXR/IlmImf/*.cpp"))
 

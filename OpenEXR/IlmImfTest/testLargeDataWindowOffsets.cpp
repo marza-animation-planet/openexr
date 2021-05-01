@@ -156,35 +156,17 @@ setupBuffer (const Header& hdr,       // header to grab datawindow from
     // how many channels in total
     //
     size_t activechans = 0;
-    int bytes_per_pixel =0;
     
     while (channels[activechans]!=NULL)
     {
-        if (pt==NULL)
-        {
-            bytes_per_pixel+=2;
-        }
-        else
-        {
-            switch (pt[activechans])
-            {
-                case IMF::HALF : bytes_per_pixel+=2;break;
-                case IMF::FLOAT : case IMF::UINT : bytes_per_pixel+=4;break;
-                default :
-                    cout << "Unexpected PixelType?\n";
-                    exit(1);
-            }
-        }
         activechans++;
     }
 
-  
-    
     size_t samples = size_t(hdr.dataWindow().max.x+1-hdr.dataWindow().min.x)*
                   size_t(hdr.dataWindow().max.y+1-hdr.dataWindow().min.y)*activechans;
 
-    size_t size = size_t(hdr.dataWindow().max.x+1-hdr.dataWindow().min.x)*
-                  size_t(hdr.dataWindow().max.y+1-hdr.dataWindow().min.y)*bytes_per_pixel;
+    // always allocate four bytes for each sample, even half types. to keep floats word-aligned
+    size_t size =samples * 4;
 
     
     if (writing)
@@ -197,29 +179,34 @@ setupBuffer (const Header& hdr,       // header to grab datawindow from
     }
    
      const char * write_ptr = writing ? &writingBuffer[0] : &readingBuffer[0];
-     // fill with random halfs, casting to floats for float channels
+     // fill with random halfs, casting to floats for float channels - don't write NaN values
      size_t chan=0;
      for (size_t i=0;i<samples;i++)
      {
-         unsigned short int values = random_int(std::numeric_limits<unsigned short>::max());
+
          half v;
-         v.setBits(values);
+         do
+         {
+           unsigned short int values = random_int(std::numeric_limits<unsigned short>::max());
+           v.setBits(values);
+         }
+         while ( v.isNan() );
+
          if (pt==NULL || pt[chan]==IMF::HALF)
          {
              *(half*)write_ptr = half(v);
-             write_ptr+=2;
          }
          else
          {
              *(float*)write_ptr = float(v);
-             write_ptr+=4;
          }
          chan++;
+         write_ptr += 4;
          if (chan==activechans)
          {
              chan=0;
          }
-     
+        
      }
 
      
@@ -227,7 +214,7 @@ setupBuffer (const Header& hdr,       // header to grab datawindow from
     ChannelList chanlist;
 
     int64_t width = (dw.max.x+1-dw.min.x);
-    int64_t bytes_per_row = bytes_per_pixel*width;
+    int64_t bytes_per_row = activechans * 4 * width;
    
     const char* offset = ( writing ? writingBuffer.data() : readingBuffer.data() ); 
     for (size_t i=0;i<activechans;i++)
@@ -236,30 +223,19 @@ setupBuffer (const Header& hdr,       // header to grab datawindow from
 
         chanlist.insert(channels[i],type);
         buf.insert (channels[i],
-                        Slice::Make (type,
-			       offset,
-			       dw.min,
-			       width,1,
-                               bytes_per_pixel,
-                               bytes_per_row,
-                               1,
-			       1,
-			       100.+i,false,false
-			       ));
-        switch (type)
-        {
-            case IMF::HALF :
-                offset+=2;
-                break;
-            case IMF::FLOAT :
-                offset+=4;
-                break;
-            default :
-                cout << "Unexpected Pixel Type\n";
-                exit(1);
-        
-        }
-    }
+                    Slice::Make (type,
+                                 offset,
+                                 dw.min,
+                                 width,1,
+                                 activechans * 4,
+                                 bytes_per_row,
+                                 1,
+                                 1,
+                                 100.+i,false,false
+                                )
+                    );
+        offset += 4;
+   }
 
     return chanlist;
 }
@@ -352,9 +328,9 @@ test (int testCount)
     for(int i = 0 ; i < testCount ; ++i )
     {
         FrameBuffer writeFrameBuf;
-        const char** channels=NULL;
-        switch( random_int(4)
-)        {
+        const char** channels=rgb;
+        switch( random_int(4))        
+        {
             case 0 : channels = rgb; break;
             case 1 : channels = rgba; break;
             case 2 : channels = rgbaz; break;

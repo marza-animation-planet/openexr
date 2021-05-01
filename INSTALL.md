@@ -4,24 +4,24 @@
 
 To build the latest release of OpenEXR, begin by downloading the
 source from the Releases page
-https://github.com/openexr/openexr/tarball/v2.3.0.
+https://github.com/AcademySoftwareFoundation/openexr/tarball/v2.3.0.
 
 To build from the latest development version, which may not be stable,
 download the master branch via
-https://github.com/openexr/openexr/tarball/master, and extract the
+https://github.com/AcademySoftwareFoundation/openexr/tarball/master, and extract the
 contents via ``tar``.
 
 You can download the repository tarball file either via a browser, or
 on the Linux/macOS via the command line using ``wget`` or ``curl``:
 
-    % curl -L https://github.com/openexr/openexr/tarball/master | tar xv
+    % curl -L https://github.com/AcademySoftwareFoundation/openexr/tarball/master | tar xv
 
 This will produce a source directory named
 ``openexr-openexr-<abbreviated-SHA-1-checksum>``.
 
 Alternatively, clone the GitHub repo directly via:
 
-    % git clone https://github.com/openexr/openexr.git
+    % git clone https://github.com/AcademySoftwareFoundation/openexr.git
 
 In the instructions that follow, we will refer to the top-level
 directory of the source code tree as ``$source_directory``.
@@ -108,11 +108,11 @@ configuration files included with find_package should set this up.
 
 ## Sub-Modules
 
-OpenEXR consists of four separate sub-modules - IlmBase, PyIlmBase,
-OpenEXR, OpenEXR_Viewers - which can be built independently. The
-repository’s top-level CMakeLists.txt defines a *super-project* that
-builds all four modules, and the steps above for running cmake at the
-top level of the repo build each of the sub-modules, in parallel.
+OpenEXR consists of three separate sub-modules - IlmBase, PyIlmBase,
+and OpenEXR - which can be built independently. The repository’s
+top-level CMakeLists.txt defines a *super-project* that builds all
+three modules, and the steps above for running cmake at the top level
+of the repo build each of the sub-modules, in parallel.
 
 However you can build each submodule individually. To build and
 install individual sub-modules, build and install the IlmBase module
@@ -135,7 +135,7 @@ which to install OpenEXR:
             $source_directory/OpenEXR
     % cmake --build . --target install --config Release
 
-Optionally, then build and install PyIlmBase, OpenEXR_Viewers, and Contrib.
+Optionally, then build and install PyIlmBase
 
 The libraries in IlmBase and OpenEXR follow the standard cmake setting
 of ``BUILD_SHARED_LIBS`` to control whether to build static or shared

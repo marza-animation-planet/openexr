@@ -75,7 +75,6 @@ namespace {
                         _worker(worker),
                         _output(output)
                     {
-                        start();
                     }
 
                     virtual ~Runner()
@@ -107,6 +106,11 @@ namespace {
                 _elements(new unsigned short[1024*1024*2])
             {
             }
+
+            LutHeaderWorker(const LutHeaderWorker& other) = delete;
+            LutHeaderWorker& operator = (const LutHeaderWorker& other) = delete;
+            LutHeaderWorker(LutHeaderWorker&& other) = delete;
+            LutHeaderWorker& operator = (LutHeaderWorker&& other) = delete;
 
             ~LutHeaderWorker()
             {
@@ -507,6 +511,7 @@ generateLutHeader()
         std::vector<LutHeaderWorker::Runner*> runners;
         for (size_t i=0; i<workers.size(); ++i) {
             runners.push_back( new LutHeaderWorker::Runner(*workers[i], (i==0)) );
+            runners.back()->start();
         }
 
         for (size_t i=0; i<workers.size(); ++i) {
@@ -518,7 +523,7 @@ generateLutHeader()
         }
     }
 
-    printf("static unsigned int closestDataOffset[] = {\n");
+    printf("const unsigned int closestDataOffset[] = {\n");
     int offsetIdx  = 0;
     int offsetPrev = 0;
     for (size_t i=0; i<workers.size(); ++i) {
@@ -538,7 +543,7 @@ generateLutHeader()
     printf("};\n\n\n");
 
 
-    printf("static unsigned short closestData[] = {\n");
+    printf("const unsigned short closestData[] = {\n");
     int elementIdx = 0;
     for (size_t i=0; i<workers.size(); ++i) {
         for (size_t element=0; element<workers[i]->numElements(); ++element) {
@@ -563,7 +568,6 @@ generateLutHeader()
 int
 main(int argc, char **argv)
 {
-    printf("#include <cstddef>\n");
     printf("\n\n\n");
 
     generateNoop();

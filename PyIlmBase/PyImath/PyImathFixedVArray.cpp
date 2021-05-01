@@ -32,6 +32,8 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#include "PyIlmBaseConfigInternal.h"
+
 #include "PyImathFixedVArray.h"
 
 #include <boost/python.hpp>
@@ -153,7 +155,7 @@ FixedVArray<T>::FixedVArray(FixedVArray<T>& other, const FixedArray<int>& mask)
     {
         if (mask[i])
         {
-            _indices[j] = i;
+            _indices[j] = i; // NOSONAR - suppress SonarCloud warning.
             j++;
         }
     }

@@ -149,6 +149,11 @@ struct TileBuffer
      TileBuffer (Compressor * const comp);
     ~TileBuffer ();
 
+    TileBuffer (const TileBuffer& other) = delete;
+    TileBuffer& operator = (const TileBuffer& other) = delete;
+    TileBuffer (TileBuffer&& other) = delete;
+    TileBuffer& operator = (TileBuffer&& other) = delete;
+
     inline void		wait () {_sem.wait();}
     inline void		post () {_sem.post();}
 
@@ -243,6 +248,11 @@ struct TiledInputFile::Data: public Mutex
      Data (int numThreads);
     ~Data ();
 
+    Data (const Data& other) = delete;
+    Data& operator = (const Data& other) = delete;
+    Data (Data&& other) = delete;
+    Data& operator = (Data&& other) = delete;
+
     inline TileBuffer * getTileBuffer (int number);
 					    // hash function from tile indices
 					    // into our vector of tile buffers
@@ -255,6 +265,7 @@ TiledInputFile::Data::Data (int numThreads):
     partNumber (-1),
     multiPartBackwardSupport(false),
     numThreads(numThreads),
+    multiPartFile(nullptr),
     memoryMapped(false),
     _streamData(NULL),
     _deleteStream(false)
@@ -744,7 +755,7 @@ TiledInputFile::TiledInputFile (const char fileName[], int numThreads):
                 }
             }
         }
-        if ( _data->_streamData != 0)
+        if ( _data->_streamData != 0 && !isMultiPart(_data->version))
         {
             delete _data->_streamData->is;
             _data->_streamData->is = is = 0;
@@ -807,10 +818,7 @@ TiledInputFile::TiledInputFile (OPENEXR_IMF_INTERNAL_NAMESPACE::IStream &is, int
         {
             for (size_t i = 0; i < _data->tileBuffers.size(); i++)
             {
-                if( _data->tileBuffers[i])
-                {
-                   delete [] _data->tileBuffers[i]->buffer;
-                }
+                delete [] _data->tileBuffers[i]->buffer;
             }
         }
         if (streamDataCreated) delete _data->_streamData;
@@ -852,14 +860,11 @@ TiledInputFile::TiledInputFile (const Header &header,
         {
             for (size_t i = 0; i < _data->tileBuffers.size(); i++)
             {
-                if(_data->tileBuffers[i])
-                {
-                     delete [] _data->tileBuffers[i]->buffer;
-                }
+                delete [] _data->tileBuffers[i]->buffer;
             }
         }
         delete _data->_streamData;
-        delete _data;
+	delete _data;
         throw; 
     }
 }
@@ -875,7 +880,20 @@ TiledInputFile::TiledInputFile (InputPartData* part)
     }
     catch(...)
     {
-        if (_data) delete _data;
+        if(_data)
+        {
+          if (!_data->memoryMapped)
+          {
+            for (size_t i = 0; i < _data->tileBuffers.size(); i++)
+            {
+                if(_data->tileBuffers[i])
+                {
+                   delete [] _data->tileBuffers[i]->buffer;
+                }
+            }
+          }
+          delete _data;
+        }
         throw;
     }
 }
@@ -1338,6 +1356,11 @@ TiledInputFile::rawTileData (int &dx, int &dy,
         readNextTileData (_data->_streamData, _data, dx, dy, lx, ly,
 			  tileBuffer->buffer,
                           pixelDataSize);
+
+        if ( !isValidLevel(lx,ly) || !isValidTile (dx, dy, lx, ly) )
+            throw IEX_NAMESPACE::ArgExc ("File contains an invalid tile");
+
+
         if(isMultiPart(version()))
         {
             if (old_dx!=dx || old_dy !=dy || old_lx!=lx || old_ly!=ly)
