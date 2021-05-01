@@ -301,7 +301,11 @@ calculateNumTiles (int *numTiles,
 {
     for (int i = 0; i < numLevels; i++)
     {
-	numTiles[i] = (levelSize (min, max, i, rmode) + size - 1) / size;
+        int l = levelSize (min, max, i, rmode);
+        if (l > std::numeric_limits<int>::max() - size + 1)
+            throw IEX_NAMESPACE::ArgExc ("Invalid size.");
+
+        numTiles[i] = (l + size - 1) / size;
     }
 }
 
@@ -348,23 +352,23 @@ getTiledChunkOffsetTableSize(const Header& header)
     // Precompute level and tile information.
     //
 
-    int* numXTiles;
-    int* numYTiles;
+    int* numXTiles=nullptr;
+    int* numYTiles=nullptr;
     int numXLevels;
     int numYLevels;
-    precalculateTileInfo (header.tileDescription(),
-                          dataWindow.min.x, dataWindow.max.x,
-                          dataWindow.min.y, dataWindow.max.y,
-                          numXTiles, numYTiles,
-                          numXLevels, numYLevels);
-
-    //
-    // Calculate lineOffsetSize.
-    //
-    Int64 lineOffsetSize = 0;
-    const TileDescription &desc = header.tileDescription();
     try
     {
+        precalculateTileInfo (header.tileDescription(),
+                            dataWindow.min.x, dataWindow.max.x,
+                            dataWindow.min.y, dataWindow.max.y,
+                            numXTiles, numYTiles,
+                            numXLevels, numYLevels);
+
+        //
+        // Calculate lineOffsetSize.
+        //
+        Int64 lineOffsetSize = 0;
+        const TileDescription &desc = header.tileDescription();
         switch (desc.mode)
         {
             case ONE_LEVEL:
