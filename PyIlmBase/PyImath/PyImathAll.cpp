@@ -32,6 +32,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////
 
+#include "PyIlmBaseConfigInternal.h"
 
 #include <Python.h>
 #include <boost/python.hpp>
@@ -42,26 +43,27 @@
 #include <ImathEuler.h>
 #include <ImathFun.h>
 #include <ImathMatrixAlgo.h>
+
 #include <PyIexExport.h>
-#include <PyImathFixedArray.h>
-#include <PyImath.h>
-#include <PyImathExport.h>
-#include <PyImathBasicTypes.h>
-#include <PyImathVec.h>
-#include <PyImathMatrix.h>
-#include <PyImathBox.h>
-#include <PyImathFun.h>
-#include <PyImathQuat.h>
-#include <PyImathEuler.h>
-#include <PyImathColor.h>
-#include <PyImathFrustum.h>
-#include <PyImathPlane.h>
-#include <PyImathLine.h>
-#include <PyImathRandom.h>
-#include <PyImathShear.h>
-#include <PyImathMathExc.h>
-#include <PyImathAutovectorize.h>
-#include <PyImathStringArrayRegister.h>
+#include "PyImathFixedArray.h"
+#include "PyImath.h"
+#include "PyImathExport.h"
+#include "PyImathBasicTypes.h"
+#include "PyImathVec.h"
+#include "PyImathMatrix.h"
+#include "PyImathBox.h"
+#include "PyImathFun.h"
+#include "PyImathQuat.h"
+#include "PyImathEuler.h"
+#include "PyImathColor.h"
+#include "PyImathFrustum.h"
+#include "PyImathPlane.h"
+#include "PyImathLine.h"
+#include "PyImathRandom.h"
+#include "PyImathShear.h"
+#include "PyImathMathExc.h"
+#include "PyImathAutovectorize.h"
+#include "PyImathStringArrayRegister.h"
 #include <PyIex.h>
 
 using namespace boost::python;
@@ -101,7 +103,7 @@ procrustes1 (PyObject* from_input,
     bool useWeights = PySequence_Check (weights_input);
 
     // Now verify the lengths:
-    const size_t n = PySequence_Length (from_input);
+    const Py_ssize_t n = PySequence_Length (from_input);
     if (n != PySequence_Length (to_input) ||
         (useWeights && n != PySequence_Length (weights_input)))
     {
@@ -113,7 +115,7 @@ procrustes1 (PyObject* from_input,
     std::vector<IMATH_NAMESPACE::V3d> to;    to.reserve (n);
     std::vector<double> weights;   weights.reserve (n);
 
-    for (size_t i = 0; i < n; ++i)
+    for (Py_ssize_t i = 0; i < n; ++i)
     {
         PyObject* f = PySequence_GetItem (from_input, i);
         PyObject* t = PySequence_GetItem (to_input, i);
@@ -307,15 +309,17 @@ void register_all()
     class_<FixedArray<IMATH_NAMESPACE::Box3d> > b3d_class = register_BoxArray<IMATH_NAMESPACE::V3d>();
 
     //
-    // Matrix33/44
+    // Matrix22/33/44
     //
+    register_Matrix22<float>();
+    register_Matrix22<double>();
     register_Matrix33<float>();
     register_Matrix33<double>();
     register_Matrix44<float>();
     register_Matrix44<double>();
 
     //
-    // M33/44Array
+    // M22/M33/44Array
     //
     class_<FixedArray<IMATH_NAMESPACE::M44d> > m44d_class = register_M44Array<double>();
     class_<FixedArray<IMATH_NAMESPACE::M44f> > m44f_class = register_M44Array<float>();
@@ -326,6 +330,11 @@ void register_all()
     class_<FixedArray<IMATH_NAMESPACE::M33f> > m33f_class = register_M33Array<float>();
     add_explicit_construction_from_type< IMATH_NAMESPACE::Matrix33<double> >(m33d_class);
     add_explicit_construction_from_type< IMATH_NAMESPACE::Matrix33<float> > (m33f_class);
+
+    class_<FixedArray<IMATH_NAMESPACE::M22d> > m22d_class = register_M22Array<double>();
+    class_<FixedArray<IMATH_NAMESPACE::M22f> > m22f_class = register_M22Array<float>();
+    add_explicit_construction_from_type< IMATH_NAMESPACE::Matrix22<double> >(m22d_class);
+    add_explicit_construction_from_type< IMATH_NAMESPACE::Matrix22<float> > (m22f_class);
 
     //
     // String Array
