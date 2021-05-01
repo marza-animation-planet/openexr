@@ -35,6 +35,10 @@ Make sure these are installed on your system before building OpenEXR:
 * C++ compiler that supports C++11
 * Zlib
 * Python and boost-python if building the PyIlmBase module.
+  - NB: If you have a custom install of boost and have issues, you may
+    need to set Boost_ROOT and/or manually disable Boost_NO_BOOST_CMAKE
+    in the PyIlmBase cmake file when you run cmake. See the FindBoost
+    documentation that is part of cmake for more information.
 
 The instructions that follow describe building OpenEXR with CMake, but
 you can also build and install OpenEXR via the autoconf
@@ -216,11 +220,11 @@ You can customize these options three ways:
 
 * **ILMBASE\_LIB\_SUFFIX**
 
-  Append the given string to the end of all the llmBase libraries. Default is ``-<major>_<minor>`` version string. Please see the section on library names
+  Append the given string to the end of all the IlmBase libraries. Default is ``-<major>_<minor>`` version string. Please see the section on library names
 
 * **OPENEXR\_LIB\_SUFFIX**
 
-  Append the given string to the end of all the llmBase libraries. Default is ``-<major>_<minor>`` version string. Please see the section on library names
+  Append the given string to the end of all the OpenEXR libraries. Default is ``-<major>_<minor>`` version string. Please see the section on library names
 
 ### Namespace Options:
 
@@ -264,8 +268,22 @@ You can customize these options three ways:
  
   Whether the namespace has been customized (so external users know)
 
+### Python Options:
+
+* **PyIlmBase\_Python2\_SITEARCH\_REL**
+
+  This will normally be computed based on where the python2 binary and site-packages live and
+  then be a relative path based on the root of those. For example, if site-packages is in
+  ``/usr/lib/python2.7/site-packages`` and the python binary is ``/usr/bin/python2.7``, this
+  will result in the default install path being ``${CMAKE\_INSTALL\_PREFIX}/lib/python2.7/site-packages``
+
+* **PyIlmBase\_Python3\_SITEARCH\_REL**
+
+  Identical logic to PyIlmBase\_Python2\_SITEARCH\_REL path above, but for python 3.x
+
 ### Linting Options:
 
+These linting options are experimental, and primarily for developer-only use at this time.
 
 * **ILMBASE\_USE\_CLANG\_TIDY**
  

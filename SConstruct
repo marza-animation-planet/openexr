@@ -16,7 +16,7 @@ excons.SetArgument("use-c++11", 1)
 env = excons.MakeBaseEnv()
 
 
-lib_version = (2, 4, 0)
+lib_version = (2, 4, 1)
 lib_version_str = "%d.%d.%d" % lib_version
 lib_suffix = excons.GetArgument("openexr-suffix", "-%d_%d" % (lib_version[0], lib_version[1]))
 #static_lib_suffix = lib_suffix + excons.GetArgument("openexr-static-suffix", "_s")
@@ -531,7 +531,6 @@ if pyilmbase_static:
    pymod_defs.append("PYILMBASE_STATICLIBS")
 if excons.GetArgument("boost-python-static", excons.GetArgument("boost-static", 0, int), int) != 0:
    pymod_defs.append("PYILMBASE_USE_STATIC_BOOST_PYTHON")
-print(pymod_defs)
 prjs = []
 
 ilmbase_incdirs = ["IlmBase/Half", "IlmBase/Iex", "IlmBase/IexMath", "IlmBase/Imath", "IlmBase/IlmThread"]
