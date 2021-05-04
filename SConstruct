@@ -118,7 +118,7 @@ def CheckConfigStatus(path, includes=None, excludes=None):
                   return True
             elif spl[0] == "have_posix_semaphores":
                val = (int(spl[1]) != 0)
-               if val != have_pthread:
+               if val != have_posix_semaphores:
                   return True
       return False
 
