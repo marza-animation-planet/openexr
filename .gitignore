@@ -27,7 +27,7 @@ missing
 /release
 /debug
 /.sconf_temp
-*config.status
+*_config*.status
 config.log
 excons.cache
 IlmBase/Half/eLut.h
