@@ -217,12 +217,12 @@ def zlibName(static):
   return ("z" if sys.platform != "win32" else ("zlib" if static else "zdll"))
 
 def zlibDefines(static):
-  return ([] if static else ["ZLIB_DLL"])
+  return ([] if (static or sys.platform != "win32") else ["ZLIB_DLL"])
 
 rv = excons.ExternalLibRequire("zlib", libnameFunc=zlibName, definesFunc=zlibDefines)
 if rv["require"] is None:
    excons.PrintOnce("OpenEXR: Build zlib from sources ...")
-   excons.Call("zlib", imp=["ZlibPath", "RequireZlib"])
+   excons.Call("zlib", targets=["zlib"], imp=["ZlibPath", "RequireZlib"])
    zlibStatic = (excons.GetArgument("zlib-static", 1, int) != 0)
    def zlibRequire(env):
       RequireZlib(env, static=zlibStatic) # pylint: disable=undefined-variable
@@ -361,7 +361,7 @@ def HalfPath(static=False):
   return excons.OutputBaseDirectory() + "/lib/" + libname
 
 def RequireHalf(env, static=False):
-  if not static:
+  if not static and sys.platform == "win32":
     env.Append(CPPDEFINES=["OPENEXR_DLL"])
   env.Append(CPPPATH=[excons.OutputBaseDirectory() + "/include",
                       excons.OutputBaseDirectory() + "/include/OpenEXR"])
@@ -492,7 +492,7 @@ def ImathPath(static=False):
   return excons.OutputBaseDirectory() + "/lib/" + libname
 
 def RequireImath(env, static=False):
-  if not static:
+  if not static and sys.platform == "win32":
     env.Append(CPPDEFINES=["OPENEXR_DLL"])
   env.Append(CPPPATH=[excons.OutputBaseDirectory() + "/include",
                       excons.OutputBaseDirectory() + "/include/OpenEXR"])
@@ -541,7 +541,7 @@ def IlmThreadPath(static=False):
   return excons.OutputBaseDirectory() + "/lib/" + libname
 
 def RequireIlmThread(env, static=False):
-  if not static:
+  if not static and sys.platform == "win32":
     env.Append(CPPDEFINES=["OPENEXR_DLL"])
   env.Append(CPPPATH=[excons.OutputBaseDirectory() + "/include",
                       excons.OutputBaseDirectory() + "/include/OpenEXR"])
@@ -587,7 +587,7 @@ def IlmImfPath(static=False):
   return excons.OutputBaseDirectory() + "/lib/" + libname
 
 def RequireIlmImf(env, static=False):
-  if not static:
+  if not static and sys.platform == "win32":
     env.Append(CPPDEFINES=["OPENEXR_DLL"])
   env.Append(CPPPATH=[excons.OutputBaseDirectory() + "/include",
                       excons.OutputBaseDirectory() + "/include/OpenEXR"])
@@ -715,7 +715,7 @@ def PyIexPath(static=False):
   return excons.OutputBaseDirectory() + "/lib/python/" + python.Version() + "/" + libname
 
 def RequirePyIex(env, staticpy=False, staticbase=False):
-  if not staticbase:
+  if not staticbase and sys.platform == "win32":
     env.Append(CPPDEFINES=["OPENEXR_DLL"])
   if staticpy:
     env.Append(CPPDEFINES=["PYILMBASE_STATICLIBS"])
@@ -782,7 +782,7 @@ prjs.append({"name": PyIexName(False),
              "win_separate_dll_and_lib": False,
              "prefix": "python/" + python.Version(),
              "bldprefix": "python" + python.Version(),
-             "defs": ["OPENEXR_DLL", "PYIEX_BUILD"] + py_defs,
+             "defs": ["PYIEX_BUILD"] + py_defs + (["OPENEXR_DLL"] if sys.platform == "win32" else []),
              "cppflags": nowarn_flags,
              "incdirs": ilmbase_incdirs + openexr_incdirs + configs_incdirs,
              "srcs": pyiex_srcs,
@@ -816,7 +816,7 @@ prjs.append({"name": PyImathName(False),
              "win_separate_dll_and_lib": False,
              "prefix": "python/" + python.Version(),
              "bldprefix": "python" + python.Version(),
-             "defs": ["OPENEXR_DLL", "PYIMATH_BUILD"] + py_defs,
+             "defs": ["PYIMATH_BUILD"] + py_defs + (["OPENEXR_DLL"] if sys.platform == "win32" else []),
              "cppflags": nowarn_flags,
              "incdirs": [out_headers_dir],
              "srcs": pyimath_srcs,
