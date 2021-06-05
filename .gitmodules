@@ -1,6 +1,6 @@
 [submodule "excons"]
 	path = excons
-	url = git://github.com/gatgui/excons.git
+	url = git@github.com:marza-animation-planet/excons.git
 [submodule "zlib"]
 	path = zlib
-	url = git://github.com/gatgui/zlib
+	url = git@github.com:marza-animation-planet/zlib
