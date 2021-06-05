@@ -77,3 +77,5 @@ CMakeLists.txt text eol=lf
 *.txt          text eol=lf
 LICENSE        text eol=lf
 
+PyIlmBase/*.map text eol=lf
+
