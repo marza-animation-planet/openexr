@@ -81,4 +81,5 @@ LICENSE        text eol=lf
 
 OpenEXR_Viewers/README.win32 text eol=crlf
 
+PyIlmBase/*.map text eol=lf
 
